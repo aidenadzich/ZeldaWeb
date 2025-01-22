@@ -1,0 +1,14 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #87ceeb; /* Sky blue */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#game-container {
+    border: 2px solid #333;
+    background: #fff;
+}
