@@ -1,4 +1,7 @@
 class MainMenu {
+    mainMenuMusic;
+    show = true; // Show the main menu by default
+
     constructor(game) {
         this.game = game;
         this.canvas = game.canvas;
@@ -20,6 +23,8 @@ class MainMenu {
     handleKeydown(event) {
         if (event.key === "Enter") {
             this.game.switchMap("spawn_map"); // Switch to spawn_map
+            this.mainMenuMusic.pause();
+            window.removeEventListener("keydown", this.handleKeydown.bind(this)); // Remove the event listener
         }
     }
 
@@ -101,6 +106,7 @@ class WarpTile extends Tile {
 
 
 class Game {
+
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext("2d");
@@ -230,11 +236,10 @@ class Game {
         }
 
         // Show the main menu at the start
-        const mainMenuMusic = new Audio('./music/mOverworld.mp3');
-        mainMenuMusic.loop = true;
-        mainMenuMusic.play();
+        this.mainMenuMusic = new Audio('./music/mOverworld.mp3');
+        this.mainMenuMusic.loop = true;
+        this.mainMenuMusic.play();
         this.mainMenu.show();
-
         
 
     }
