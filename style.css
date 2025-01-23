@@ -11,4 +11,5 @@ body {
 #game-container {
     border: 2px solid #333;
     background: #fff;
+    scale: 300%;
 }

@@ -1,280 +1,226 @@
-// import { WarpUp, WarpRight, WarpDown, WarpLeft, WarpCave, WarpUpPos, WarpRightPos, WarpDownPos, WarpLeftPos } from "./warps.js";
+class Warp {
+    constructor(destination, destinationPos) {
+        this.destination = destination; // Destination map name
+        this.destinationPos = destinationPos; // Position on the destination map
+    }
 
-var WarpUp = "g8";
-var WarpRight = "h9";
-var WarpDown = "i8";
-var WarpLeft = "h7";
-var WarpCave = "swordcave";
-
-var WarpUpPos = { // WU
-    x: 8, // Starting X Pos
-    y: 10  // Starting Y Pos
-};
-var WarpRightPos = { // WR
-x: 0, // Starting X Pos
-y: 0  // Starting Y Pos
-};
-var WarpDownPos = { //WD
-x: 0, // Starting X Pos
-y: 0  // Starting Y Pos
-};
-var WarpLeftPos = { //WL
-x: 0, // Starting X Pos
-y: 0  // Starting Y Pos
-};
-var WarpCavePos = { //WC
-x: 8, // Starting X Pos
-y: 10  // Starting Y Pos
-};
-
-// Game setup
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
-
-// Scaling
-const TILE_SIZE = 32;
-const PLAYER_SCALE = 1;
-
-let map = {};
-let currentMap = "spawn_map"; // Set the map to start on
-let maps = {};
-
-// Starting Position
-let player = {
-    x: 8, // Starting X Pos
-    y: 6  // Starting Y Pos
-};
-
-// Load images
-const images = {
-    player: new Image(),
-    wall: new Image(),
-    ground: new Image(),
-    cave: new Image(),
-    oldMan: new Image()
-};
-
-images.player.src = "images/player.bmp";
-images.wall.src = "images/tile.png";
-images.ground.src = "images/ground.png";
-images.cave.src = "images/cave.png";
-images.oldMan.src = "images/oldman.png";
-
-let groundTile = images.ground;
-
-// Debug image loading
-const loadedImages = [];
-Object.keys(images).forEach((key) => {
-    images[key].onload = () => {
-        loadedImages.push(key);
-        console.log(`${key} image loaded.`);
-        if (loadedImages.length === Object.keys(images).length) {
-            console.log("All images loaded!");
-            startUp(currentMap);// Load and draw map after getting all the images
-        }
-    };
-    images[key].onerror = () => console.error(`Error loading image: ${key}`);
-});
-
-// Load map from PHP
-async function loadMap(mapName) {
-    await fetch("map.php?map=" + mapName)
-        .then(response => {
-            if (!response.ok) throw new Error("Failed to fetch map data.");
-            return response.json();
-        })
-        .then(data => {
-            console.log("Map data loaded:", data); // Check the map data
-            maps[mapName] = data;
-            map = data; // Set current map
-            // if (callback) callback(); // Call the callback after the map is loaded
-            // drawGame();
-        })
-        .catch(err => console.error("Error loading map:", err));
+    activate(game) {
+        game.switchMap(this.destination, this.destinationPos);
+    }
 }
 
-// Switch Map
-async function switchMap(newMap) {
-    console.log(`Switching to ${newMap}`);
-    if (!maps[newMap]) {
-        // Load the map if not already loaded
-        await loadMap(newMap);
-    } else {
-        map = maps[newMap];
-    }
-    currentMap = newMap;
-
-
-
-    if (newMap === "swordcave") {
-        groundTile = images.cave;
-        WarpDown = "spawn_map";
-        WarpDownPos = { x: 5, y: 1 };
-        console.log(WarpDownPos);
-
-    } else if (newMap === "spawn_map") {
-        WarpUp = "g8";
-        WarpUpPos = { x: 8, y: 10 };
-        WarpCave = "swordcave";
-        WarpCavePos = { x: 8, y: 10 };
-
-    } else if (newMap === "g8") {
-        WarpDown = "spawn_map";
-        WarpDownPos = { x: player.x, y: player.y - 10 };
-
-    } else {
-        // Default player position
-        player.x = 8;
-        player.y = 6;
-    }
-    drawGame();
-}
-
-
-// Draw the game
-function drawGame() {
-    if (!map || !Array.isArray(map)) {
-        console.warn("Map is empty or invalid. Cannot draw the game.");
-        return;
+class Player {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
     }
 
-    console.log("Drawing game...");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (currentMap === "swordcave") {
-        groundTile = images.cave;
-    } else {
-        groundTile = images.ground;
-    }
-    // Draw the map
-    map.forEach((row, rowIndex) => {
-        row.forEach((tile, colIndex) => {
-            if (tile === 0 || tile === '0') {
-                // Walkable tile, apply map-specific logic
-                if (currentMap === "swordcave") {
-                    ctx.drawImage(
-                        groundTile,
-                        colIndex * TILE_SIZE,
-                        rowIndex * TILE_SIZE,
-                        TILE_SIZE,
-                        TILE_SIZE
-                    );
-                } else {
-                    ctx.drawImage(
-                        groundTile,
-                        colIndex * TILE_SIZE,
-                        rowIndex * TILE_SIZE,
-                        TILE_SIZE,
-                        TILE_SIZE
-                    );
-                }
-            } else if (tile === 1) {
-                // Draw obstacle tile
-                ctx.drawImage(
-                    images.wall,
-                    colIndex * TILE_SIZE,
-                    rowIndex * TILE_SIZE,
-                    TILE_SIZE,
-                    TILE_SIZE
-                );
-            } else if (tile === 'B') {
-                // Draw cave entrance
-                ctx.drawImage(
-                    images.cave,
-                    colIndex * TILE_SIZE,
-                    rowIndex * TILE_SIZE,
-                    TILE_SIZE,
-                    TILE_SIZE
-                );
-            } else if (tile === 'WU' || tile === 'WR' || tile === 'WD' || tile === 'WL') {
-                // Draw warp tile
-                ctx.drawImage(
-                    groundTile,
-                    colIndex * TILE_SIZE,
-                    rowIndex * TILE_SIZE,
-                    TILE_SIZE,
-                    TILE_SIZE
-                ); 
-            } else if (tile === 'WC') {
-                // Draw warp cave tile
-                ctx.drawImage(
-                    images.cave,
-                    colIndex * TILE_SIZE,
-                    rowIndex * TILE_SIZE,
-                    TILE_SIZE,
-                    TILE_SIZE
-                );
-            } else if (tile === 'O') {
-                // Draw Old Man tile
-                ctx.drawImage(
-                    images.oldMan,
-                    colIndex * TILE_SIZE,
-                    rowIndex * TILE_SIZE,
-                    TILE_SIZE,
-                    TILE_SIZE
-                );
-            } else {
-                // Default fallback for unexpected tiles
-                ctx.fillStyle = "pink"; // Debug color for unhandled tiles
-                ctx.fillRect(
-                    colIndex * TILE_SIZE,
-                    rowIndex * TILE_SIZE,
-                    TILE_SIZE,
-                    TILE_SIZE
-                );
+    move(dx, dy, game) {
+        const newX = this.x + dx;
+        const newY = this.y + dy;
+        const tile = game.map[newY]?.[newX];
+    
+        if (tile instanceof Tile) {
+            if (tile.isWalkable) {
+                this.x = newX;
+                this.y = newY;
             }
+    
+            if (tile instanceof WarpTile) {
+                tile.activate(game);
+            }
+        }
+    }
+    
+}
+
+class Tile {
+    constructor(isWalkable = true) {
+        this.isWalkable = isWalkable;
+    }
+}
+
+class GroundTile extends Tile {
+    constructor(texture = "ground") {
+        super(true); // Ground tiles are walkable
+        this.texture = texture; // Default to "ground"
+    }
+}
+class WallTile extends Tile {
+    constructor(texture = "wall") {
+        super(false); // Walls are not walkable
+        this.texture = texture; // Default to "wall"
+    }
+}
+class WarpTile extends Tile {
+    constructor(destination, destinationPos, texture = null) {
+        super(true); // Warps are walkable
+        this.destination = destination;
+        this.destinationPos = destinationPos;
+        this.texture = texture;
+    }
+
+    activate(game) {
+        game.switchMap(this.destination, this.destinationPos);
+    }
+}
+
+
+class Game {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext("2d");
+        this.TILE_SIZE = 16;
+        this.PLAYER_SCALE = 1;
+
+        this.player = new Player(8, 6); // Starting position
+        this.map = [];
+        this.currentMap = "spawn_map";
+        this.tileset = {
+            ground: new GroundTile(),
+            wall: new WallTile(),
+            warp: null, // Warps are added dynamically
+        };
+        this.images = {};
+        this.loadImages();
+        this.loadMap(this.currentMap).catch(error => {
+            console.error("Failed to fetch map data:", error);
         });
-    });
+    }
 
+    loadImages() {
+        const imageSources = {
+            player: "images/player.bmp",
+            wall: "images/tile.png",
+            ground: "images/ground.png",
+            cave: "images/cave.png",
+            oldMan: "images/oldman.png",
+        };
+        const loadedImages = [];
 
-    // Draw the player
-    ctx.drawImage(
-        images.player,
-        player.x * TILE_SIZE + (TILE_SIZE - TILE_SIZE * PLAYER_SCALE) / 2,
-        player.y * TILE_SIZE + (TILE_SIZE - TILE_SIZE * PLAYER_SCALE) / 2,
-        TILE_SIZE * PLAYER_SCALE,
-        TILE_SIZE * PLAYER_SCALE
-    );
+        Object.keys(imageSources).forEach((key) => {
+            this.images[key] = new Image();
+            this.images[key].src = imageSources[key];
+            this.images[key].onload = () => {
+                loadedImages.push(key);
+                if (loadedImages.length === Object.keys(imageSources).length) {
+                    this.start();
+                }
+            };
+            this.images[key].onerror = () => console.error(`Error loading image: ${key}`);
+        });
+    }
 
-    console.log("Game drawn successfully.");
+    async loadMap(mapName) {
+        if (!maps[mapName]) {
+            console.error(`Map "${mapName}" not found.`);
+            return;
+        }
+        this.map = maps[mapName];
+    }
+    
+    
+    
+
+    switchMap(newMap, playerPosition) {
+        this.loadMap(newMap);
+        this.currentMap = newMap;
+    
+        if (playerPosition) {
+            this.player.x = playerPosition.x;
+            this.player.y = playerPosition.y;
+        }
+    
+        this.draw();
+    }
+    
+
+    draw() {
+        const { ctx, TILE_SIZE, player, images, map } = this;
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    
+        map.forEach((row, rowIndex) => {
+            row.forEach((tile, colIndex) => {
+                const x = colIndex * TILE_SIZE;
+                const y = rowIndex * TILE_SIZE;
+    
+                if (tile instanceof GroundTile || tile instanceof WallTile || tile instanceof WarpTile) {
+                    const texture = images[tile.texture] || images.ground; // Default to ground if texture is missing
+                    ctx.drawImage(texture, x, y, TILE_SIZE, TILE_SIZE);
+                }
+            });
+        });
+    
+        ctx.drawImage(
+            images.player,
+            player.x * TILE_SIZE,
+            player.y * TILE_SIZE,
+            TILE_SIZE * this.PLAYER_SCALE,
+            TILE_SIZE * this.PLAYER_SCALE
+        );
+    }
+    
+    
+
+    async start() {
+        await this.loadMap(this.currentMap); // Ensures the map is loaded
+        this.draw();
+        window.addEventListener("keydown", (e) => this.handleKeydown(e));
+    }
+    
+
+    handleKeydown(event) {
+        if (event.key === "ArrowUp") this.player.move(0, -1, this);
+        if (event.key === "ArrowDown") this.player.move(0, 1, this);
+        if (event.key === "ArrowLeft") this.player.move(-1, 0, this);
+        if (event.key === "ArrowRight") this.player.move(1, 0, this);
+
+        this.draw();
+    }
 }
+const maps = {
+    "spawn_map": [
+        [new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WarpTile("g8", { x: 7, y: 10 }, "ground"), new WarpTile("g8", { x: 8, y: 10 }, "ground"), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WarpTile("sword_cave", { x: 8, y: 10 }, "cave"), new WallTile(), new WallTile(), new GroundTile(), new GroundTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new WallTile(), new WallTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new WallTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()],
+        [new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile()],
+        [new WallTile(), new WallTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()]
+    ],
+    "sword_cave": [
+        [new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new GroundTile('cave'), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new GroundTile('cave'), new GroundTile('cave'), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WarpTile("spawn_map", { x: 4, y: 1 }, "cave"), new WarpTile("spawn_map", { x: 4, y: 1 }, "cave"), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()]
+    ],
+    "g8": [
+        [new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WallTile(), new WallTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new GroundTile(), new GroundTile(), new WallTile(), new GroundTile(), new WallTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WallTile(), new GroundTile(), new GroundTile(), new WallTile()],
+        [new WarpTile("g7", { x: 0, y: 4 }, "ground"), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WarpTile("g9", { x: 15, y: 4 }, "ground")],
+        [new WarpTile("g7", { x: 0, y: 5 }, "ground"), new GroundTile(), new GroundTile(), new WallTile(), new GroundTile(), new WallTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WallTile(), new GroundTile(), new GroundTile(), new WarpTile("g9", { x: 15, y: 5 }, "ground")],
+        [new WarpTile("g7", { x: 0, y: 5 }, "ground"), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WarpTile("g9", { x: 15, y: 6 }, "ground")],
+        [new WallTile(), new GroundTile(), new GroundTile(), new WallTile(), new GroundTile(), new WallTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WallTile(), new GroundTile(), new GroundTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WallTile(), new WallTile(), new GroundTile(), new GroundTile(), new GroundTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new GroundTile(), new GroundTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()],
+        [new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WarpTile("spawn_map", { x: 7, y: 0 }, "ground"), new WarpTile("spawn_map", { x: 8, y: 0 }, "ground"), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile(), new WallTile()]
+    ],
+};
 
-// Handle keyboard input
-window.addEventListener("keydown", (event) => {
-    const { x, y } = player;
-    console.log(player);
+window.onload = () => {
+    const game = new Game("gameCanvas");
+};
 
-    // Define movement conditions
-    if (event.key === "ArrowUp" && map[y - 1]?.[x] === 0) player.y--;
-    if (event.key === "ArrowUp" && map[y - 1]?.[x] === 'WC') {
-        player.y--;
-        player = WarpCavePos;
-        switchMap(WarpCave);
-        return;
-    }
-    if (event.key === "ArrowUp" && map[y - 1]?.[x] === 'WU') {
-        player.y--;
-        player = WarpUpPos;
-        switchMap(WarpUp);
-        return;
-    }
-    if (event.key === "ArrowDown" && map[y + 1]?.[x] === 0) player.y++;
-    if (event.key === "ArrowDown" && map[y + 1]?.[x] === 'WD') {
-        player.y++;
-        player = WarpDownPos;
-
-        switchMap(WarpDown);
-        console.log("test");
-        console.log(player);
-        return;
-    }
-    if (event.key === "ArrowLeft" && map[y]?.[x - 1] === 0) player.x--;
-    if (event.key === "ArrowRight" && map[y]?.[x + 1] === 0) player.x++;
-
-    drawGame();
-});
-
-async function startUp(currentMap) {
-    await loadMap(currentMap);
-    drawGame();
-}
